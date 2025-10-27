@@ -1,147 +1,210 @@
-# 🎸 Guitar Strum Simulator 
+# ChordCraft v0.2 — Interactive Guitar Strum Synth
 
-This project is a standalone **Guitar Strumming Sound Simulator** based on the **Karplus–Strong string synthesis algorithm**.  
-It reads 6-line guitar tablature (`.txt`) and generates a corresponding `.wav` audio file that mimics realistic plucked string sounds.
+ChordCraft v0.2 is an interactive guitar strumming synthesizer with a built-in GUI.
 
----
+You type:
+- a chord progression (like `Em C G D`)
+- a human strumming pattern (like `D(2) D(1) D(0.5) U(0.5)`)
+- tempo (BPM), loops, strum feel, etc.
 
-## 🧠 Overview
+It will:
+1. Generate a readable 6-line guitar TAB.
+2. Animate a scrolling TAB preview (silent).
+3. Export a realistic guitar-style WAV file using physical string modeling.
 
-- **Language:** Python 3.8 or higher  
-- **Algorithm:** Karplus–Strong plucked string synthesis  
-- **Output:** 16-bit PCM `.wav` audio (Mono, 48 kHz)  
-- **Mode:** Offline rendering (no real-time playback required)
+This version is designed for stable offline rendering:
+it does not rely on your audio driver, and it does not attempt real-time playback.
 
-This version is self-contained and designed for stable, reproducible results — suitable for class projects or audio demos.
+------------------------------------------------------------
+Core ideas
+------------------------------------------------------------
 
----
+- Language: Python 3.8+
+- Synthesis: Karplus–Strong plucked string model (physically inspired string decay)
+- Output: 16-bit mono WAV @ 48 kHz
+- Interface: Tkinter GUI (fully interactive; no terminal flags required)
+- Timing: Groove-aware. Each strum hit has its own duration.
 
-## 📂 Project Structure
+Unlike a simple metronome, this engine respects per-hit timing.
+For example, `D(2)` lasts longer than `D(0.5)` in the output audio, so you actually hear downbeats lingering and offbeats snapping by.
 
-```
-GuitarStrumSimulator/
-├── newplay.py           # Main script for TAB parsing and audio synthesis
-├── example_tab.txt      # Example guitar tab file (C major pattern)
-└── README.md            # Project documentation
-```
+------------------------------------------------------------
+Requirements
+------------------------------------------------------------
 
----
+You only need Python and NumPy.
 
-## ⚙️ Requirements
+Dependency / Install:
+- Python >= 3.8  (download from python.org if needed)
+- NumPy >= 1.21  ->  pip install numpy
 
-| Dependency | Version | Installation |
-|-------------|----------|---------------|
-| Python | ≥ 3.8 | [Download Python](https://www.python.org/downloads/) |
-| NumPy | ≥ 1.21 | `pip install numpy` |
+tkinter is included with most standard Python builds on Windows/macOS/Linux.
+No "simpleaudio", no soundcard hooks — WAV is rendered offline, then you play it in any media player.
 
-No other external libraries are required.  
-**simpleaudio** is not used in this version — playback is done offline by generating `.wav` files.
+------------------------------------------------------------
+Project Layout
+------------------------------------------------------------
 
----
+Suggested repo structure:
 
-## ▶️ Usage
+ChordCraft/
+├─ chordcraft_gui_groove.py   # GUI app (main entry point)
+├─ README.txt                 # This file
 
-1. Open a terminal or PowerShell in the project directory.
-2. Run the following command:
+You can add example progressions or screenshots later if you want.
 
-```bash
-python newplay.py example_tab.txt --bpm 90 --spb 2 --engine ks --out my_take.wav
-```
+------------------------------------------------------------
+How to Run
+------------------------------------------------------------
 
-### Parameters
+1. Install NumPy:
+   pip install numpy
 
-| Argument | Description | Default |
-|-----------|--------------|----------|
-| `path` | Path to your TAB file | *(required)* |
-| `--bpm` | Beats per minute | `90` |
-| `--spb` | Steps per beat (time resolution) | `2` |
-| `--engine` | Synthesis engine: `ks` (Karplus–Strong) or `sine` | `ks` |
-| `--strum` | Strumming delay per string in milliseconds (negative = upward) | `18` |
-| `--out` | Output `.wav` file name | `my_take.wav` |
-| `--window` | Optional: display window width in terminal preview | `24` |
+2. Launch the GUI:
+   python chordcraft_gui_groove.py
 
----
+You should now see a window with input fields and buttons.
 
-## 🪕 Example TAB Format
+------------------------------------------------------------
+GUI Controls
+------------------------------------------------------------
 
-The simulator expects a **6-line TAB** (EADGBE order).  
-Each line should begin with the string name followed by a `|` separator.
+Inputs:
 
-```
-e|0---0---0---0---
-B|1---1---1---1---
-G|0---0---0---0---
-D|2---2---2---2---
-A|3---3---3---3---
-E|x---x---x---x---
-```
+- Chords
+  Space-separated chord names, e.g.
+  Em C G D
+  These chord names must exist in the built-in chord dictionary (Em, C, G, D, Dsus4, etc.).
 
-- Numbers: fret positions  
-- `x`: muted string  
-- `-`: sustain (no new note)
+- Pattern
+  Strumming sequence with explicit durations in beats.
+  Example (this is the default):
+  D(2) D(1) D(0.5) U(0.5)
 
----
+  Meaning:
+  - D = downstroke
+  - U = upstroke
+  - The number in parentheses = how long that hit lasts in beats
+    (e.g. 2 beats, 1 beat, 0.5 beat)
 
-## 🎧 Output
+  You can also write patterns like:
+  D:2
+  D2
+  U0.5
 
-After execution, the script generates a `.wav` file in the same directory:
+- BPM
+  Tempo in beats per minute. Affects how long one beat is in seconds.
 
-```
-[OK] wrote my_take.wav
-length: 1.62 seconds
-Done. You can now play my_take.wav in any media player.
-```
+- SPB
+  Steps Per Beat.
+  This is only used for drawing the TAB grid and for the silent scroll preview timing.
+  SPB does NOT affect final WAV timing in groove mode.
 
-Audio properties:
-- Sample Rate: **48000 Hz**  
-- Bit Depth: **16-bit PCM**  
-- Channel: **Mono**  
-- Duration: depends on TAB length and BPM  
+- Loops
+  How many times to repeat the chord progression + pattern.
 
-This sampling rate ensures compatibility with most Bluetooth and wired devices.
+- Window
+  How many columns of TAB to show at once in the scrolling preview window.
 
----
+- Strum ms
+  Per-string delay (in milliseconds) within a single strum.
+  A higher number (for example 20 ms) makes the chord “sweep” across the strings like a real guitarist instead of all strings firing at once.
 
-## 🧩 Advanced Options
+Buttons:
 
-You can experiment with parameters:
+- Preview TAB
+  Generates a 6-line TAB (standard e|B|G|D|A|E layout) in the text box.
 
-```bash
-# Slower tempo, sine wave engine
-python newplay.py example_tab.txt --bpm 70 --engine sine --out mellow_take.wav
+- Scroll Preview (silent)
+  Animates a caret "^" moving through the TAB columns in time.
+  This uses a uniform timing model (like a drum machine grid).
+  It’s meant for visual demo only and does not play sound.
 
-# Faster tempo, reverse strumming direction
-python newplay.py example_tab.txt --bpm 120 --strum -15 --out fast_upstroke.wav
-```
+- Stop Scroll
+  Stops the caret animation.
 
----
+- Export WAV (groove)
+  This is the main feature.
+  It renders actual guitar-like audio using Karplus–Strong synthesis and groove-aware timing:
+  - Each pattern element’s duration (like D(2), U(0.5))
+    becomes real time in seconds: duration_in_beats * (60 / BPM).
+  - Longer beats ring out longer.
+  - Quick upstrokes are short and percussive.
 
-## 💡 Notes
+  You’ll be asked where to save (for example chordcraft_output.wav).
+  Then you can open that WAV in VLC, Windows Media Player, etc.
 
-- The program is fully offline; it **does not depend on your audio device**.  
-- Works on **Windows, macOS, and Linux**.  
-- You can use any Python IDE or terminal to run the script.  
-- If you want to develop a GUI or real-time version later, this serves as a **stable baseline**.
+- Save TAB as TXT
+  Saves the currently generated TAB as a .txt file for documentation or sharing.
 
----
+------------------------------------------------------------
+Audio Details
+------------------------------------------------------------
 
-## 🧪 Tested Environment
+- Sample Rate: 48,000 Hz
+- Format: 16-bit PCM WAV
+- Channels: Mono
+- Synthesis: Karplus–Strong (damped feedback loop to mimic a plucked string)
+- Strumming feel: simulated by staggering each string a few ms apart (“Strum ms”)
 
-| Component | Version |
-|------------|----------|
-| OS | Windows 10 / 11 |
-| Python | 3.10.14 |
-| NumPy | 1.26.4 |
-| Audio Output | 48 kHz Bluetooth / Realtek Speaker |
+Because we render to a file instead of streaming in real time, this works consistently even on machines / drivers / Bluetooth stacks that crash on live playback.
 
----
+------------------------------------------------------------
+Why this version matters
+------------------------------------------------------------
 
-## 🏁 Author
+Earlier experiments tried to:
+- generate TAB
+- play it in real time
+- update the GUI cursor live
 
-**Shuo Li**  
-University of Iowa · Department of Statistics and Actuarial Science  
-📧 [li-shuo@uiowa.edu](mailto:li-shuo@uiowa.edu)
+That live playback can crash Python on some Windows audio drivers (especially certain Bluetooth headsets / USB audio devices) with no Python traceback.
 
----
+ChordCraft v0.2 fixes that:
+- All sound is rendered offline to WAV.
+- GUI “playback” is purely visual (silent).
+- Timing in the final audio is NOT just uniform steps — it honors your durations per hit, so you actually get groove instead of machine-gun clicks.
 
-© 2025 Shuo Li — *Guitar Strum Simulator Stable Version v1.0*
+This makes it safe to demo in class, during a presentation, or on a different machine.
+
+------------------------------------------------------------
+Tested Environment
+------------------------------------------------------------
+
+Component / Version:
+- OS: Windows 10 / Windows 11
+- Python: 3.10+
+- NumPy: 1.26+
+- Output device: Any WAV player (the program itself does not depend on audio drivers at render time)
+
+Also works on macOS and Linux as long as Tkinter and NumPy are available.
+
+------------------------------------------------------------
+Typical demo flow
+------------------------------------------------------------
+
+1. Run:
+   python chordcraft_gui_groove.py
+
+2. Leave defaults:
+   Chords: Em C G D
+   Pattern: D(2) D(1) D(0.5) U(0.5)
+   BPM: ~70
+   Strum ms: ~20
+
+3. Click "Preview TAB" to generate the guitar tab.
+
+4. Click "Scroll Preview (silent)" to show the caret moving.
+
+5. Click "Export WAV (groove)" and save as demo.wav.
+
+6. Double-click the saved WAV file in your OS and play it.
+
+No crashes. No audio driver required. You get audible groove: long beats feel longer, short hits feel snappier.
+
+------------------------------------------------------------
+End
+------------------------------------------------------------
+
+ChordCraft v0.2 — Interactive Groove Strummer
+All rights reserved.
